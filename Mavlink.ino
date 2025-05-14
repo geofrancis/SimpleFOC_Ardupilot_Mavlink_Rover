@@ -75,17 +75,37 @@ void MavLink_RC() {
             //    Serial.println();
           }
           break;
+
         case MAVLINK_MSG_ID_SERVO_OUTPUT_RAW:  // #35
           {
             mavlink_servo_output_raw_t SERVOCHANNEL;
             mavlink_msg_servo_output_raw_decode(&msg, &SERVOCHANNEL);
             // Serial.print("Chanel 1 (raw): ");
-            // Serial.println(SERVOCHANNEL.servo1_raw);
+            // //SERVOCHANNEL.servo1_raw);
+            //Serial.print("Chanel 13 (raw): ");
+            ////SERVOCHANNEL.servo13_raw);
             // MAXRPM = map(SERVOCHANNEL.servo14_raw, 1000, 2000, 100, 300);
-            leftoutput = map(SERVOCHANNEL.servo15_raw, 1000, 2000, -MAXRPM, MAXRPM);
-            rightoutput = map(SERVOCHANNEL.servo16_raw, 1000, 2000, -MAXRPM, MAXRPM);
-            motorL.move(leftoutput);
-            motorR.move(rightoutput);
+
+            int leftoutputraw = (SERVOCHANNEL.servo1_raw);
+            int rightoutputraw = (SERVOCHANNEL.servo2_raw);
+
+
+            if (leftoutputraw > (1500 + DZ)) { leftoutput = map(SERVOCHANNEL.servo1_raw, (1500 + DZ), 2000, 0, MAXRPM); }
+            if (leftoutputraw < (1500 - DZ)) { leftoutput = map(SERVOCHANNEL.servo1_raw, (1500 - DZ), 1000, 0, -MAXRPM); }
+            if (leftoutputraw < (1500 + DZ) && leftoutputraw > (1500 - DZ)) {
+              leftoutput = 0;
+            }
+
+            if (rightoutputraw > (1500 + DZ)) { rightoutput = map(SERVOCHANNEL.servo2_raw, (1500 + DZ), 2000, 0, MAXRPM); }
+            if (rightoutputraw < (1500 - DZ)) { rightoutput = map(SERVOCHANNEL.servo2_raw, (1500 - DZ), 1000, 0, -MAXRPM); }
+            if (rightoutputraw < (1500 + DZ) && rightoutputraw > (1500 - DZ)) {
+              rightoutput = 0;
+            }
+            Serial.print(rightoutput);
+            Serial.print(leftoutput);
+          //  powerchannel = (SERVOCHANNEL.servo3_raw);
+
+
           }
           break;
       }
@@ -127,18 +147,18 @@ void HBWATCH() {
 
 
 void MAVLINK_HB1() {
-    uint8_t autopilot_type = MAV_AUTOPILOT_INVALID;
-    uint8_t system_mode = MAV_MODE_PREFLIGHT;  ///< Booting up
-    uint32_t custom_mode = 1;                  ///< Custom mode, can be defined by user/adopter
-    uint8_t system_state = MAV_STATE_STANDBY;  ///< System ready for flight
-    mavlink_message_t msg;
-    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
-    int type = MAV_TYPE_SERVO;
-    // Pack the message
-    // Serial.print("mavhb1");
-    mavlink_msg_heartbeat_pack(1, 140, &msg, type, autopilot_type, system_mode, custom_mode, system_state);
-    uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
-    Serial1.write(buf, len);
+  uint8_t autopilot_type = MAV_AUTOPILOT_INVALID;
+  uint8_t system_mode = MAV_MODE_PREFLIGHT;  ///< Booting up
+  uint32_t custom_mode = 1;                  ///< Custom mode, can be defined by user/adopter
+  uint8_t system_state = MAV_STATE_STANDBY;  ///< System ready for flight
+  mavlink_message_t msg;
+  uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+  int type = MAV_TYPE_SERVO;
+  // Pack the message
+  // Serial.print("mavhb1");
+  mavlink_msg_heartbeat_pack(1, 140, &msg, type, autopilot_type, system_mode, custom_mode, system_state);
+  uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
+  Serial1.write(buf, len);
 }
 
 
@@ -163,62 +183,60 @@ void MAVLINK_ESC_1() {
 
 
 void Mavlink_Telemetry() {
-  FOC_telemetry();
+  //FOC_telemetry();
 
-    mavlink_message_t msg;
-    uint32_t time_boot_ms = millis();
+  mavlink_message_t msg;
+  uint32_t time_boot_ms = millis();
 
-    const char* name = "targetL";
-    float value = (targetL);
-    mavlink_msg_named_value_float_pack(1, 140, &msg, time_boot_ms, name, value);
-    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
-    uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
-    Serial1.write(buf, len);
+  const char* name = "targetL";
+  float value = (targetL);
+  mavlink_msg_named_value_float_pack(1, 140, &msg, time_boot_ms, name, value);
+  uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+  uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
+  Serial1.write(buf, len);
 
-    name = "velocityL";
-    value = velocityL;
-    mavlink_msg_named_value_float_pack(1, 140, &msg, time_boot_ms, name, value);
-    len = mavlink_msg_to_send_buffer(buf, &msg);
-    Serial1.write(buf, len);
+  name = "velocityL";
+  value = velocityL;
+  mavlink_msg_named_value_float_pack(1, 140, &msg, time_boot_ms, name, value);
+  len = mavlink_msg_to_send_buffer(buf, &msg);
+  Serial1.write(buf, len);
 
-    name = "voltageqL";
-    value = voltageqL;
-    mavlink_msg_named_value_float_pack(1, 140, &msg, time_boot_ms, name, value);
-    len = mavlink_msg_to_send_buffer(buf, &msg);
-    Serial1.write(buf, len);
+  name = "voltageqL";
+  value = voltageqL;
+  mavlink_msg_named_value_float_pack(1, 140, &msg, time_boot_ms, name, value);
+  len = mavlink_msg_to_send_buffer(buf, &msg);
+  Serial1.write(buf, len);
 
-    name = "currentqL";
-    value = currentqL;
-    mavlink_msg_named_value_float_pack(1, 140, &msg, time_boot_ms, name, value);
-    len = mavlink_msg_to_send_buffer(buf, &msg);
-    Serial1.write(buf, len);
-    //Serial.print("V1: ");
-    //Serial.println(VOLT1);
-
-
-    name = "targetR";
-    value = targetR;
-    mavlink_msg_named_value_float_pack(1, 140, &msg, time_boot_ms, name, value);
-    len = mavlink_msg_to_send_buffer(buf, &msg);
-    Serial1.write(buf, len);
-    
-    name = "velocityR";
-    value = velocityR;
-    mavlink_msg_named_value_float_pack(1, 140, &msg, time_boot_ms, name, value);
-    len = mavlink_msg_to_send_buffer(buf, &msg);
-    Serial1.write(buf, len);
-    
-    name = "voltageqR";
-    value = voltageqR;
-    mavlink_msg_named_value_float_pack(1, 140, &msg, time_boot_ms, name, value);
-    len = mavlink_msg_to_send_buffer(buf, &msg);
-    Serial1.write(buf, len);
-    
-    name = "currentqR";
-    value = currentqR;
-    mavlink_msg_named_value_float_pack(1, 140, &msg, time_boot_ms, name, value);
-    len = mavlink_msg_to_send_buffer(buf, &msg);
-    Serial1.write(buf, len);
-  }
+  name = "currentqL";
+  value = currentqL;
+  mavlink_msg_named_value_float_pack(1, 140, &msg, time_boot_ms, name, value);
+  len = mavlink_msg_to_send_buffer(buf, &msg);
+  Serial1.write(buf, len);
+  //Serial.print("V1: ");
+  //Serial.println(VOLT1);
 
 
+  name = "targetR";
+  value = targetR;
+  mavlink_msg_named_value_float_pack(1, 140, &msg, time_boot_ms, name, value);
+  len = mavlink_msg_to_send_buffer(buf, &msg);
+  Serial1.write(buf, len);
+
+  name = "velocityR";
+  value = velocityR;
+  mavlink_msg_named_value_float_pack(1, 140, &msg, time_boot_ms, name, value);
+  len = mavlink_msg_to_send_buffer(buf, &msg);
+  Serial1.write(buf, len);
+
+  name = "voltageqR";
+  value = voltageqR;
+  mavlink_msg_named_value_float_pack(1, 140, &msg, time_boot_ms, name, value);
+  len = mavlink_msg_to_send_buffer(buf, &msg);
+  Serial1.write(buf, len);
+
+  name = "currentqR";
+  value = currentqR;
+  mavlink_msg_named_value_float_pack(1, 140, &msg, time_boot_ms, name, value);
+  len = mavlink_msg_to_send_buffer(buf, &msg);
+  Serial1.write(buf, len);
+}
