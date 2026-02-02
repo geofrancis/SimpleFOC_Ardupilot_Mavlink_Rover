@@ -99,12 +99,12 @@ void setup() {
 
 
 void loop() {
-  //motor.monitor();
-  //motor1.monitor();
   motor.loopFOC();
   motor1.loopFOC();
-  // MavLink_RC();
-
+  //motor.monitor();
+  //motor1.monitor(); 
+  
+  //MavLink_RC();
   //FOC_Speed();
 
   motor.move(target_velocity);
@@ -131,3 +131,4 @@ void loop() {
     // Serial.println(DI1O);
   }
 }
+
