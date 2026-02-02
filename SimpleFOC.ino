@@ -3,9 +3,7 @@
 #include "mavlink/common/mavlink_msg_servo_output_raw.h"
 #include <SimpleFOC.h>
 #include <esp_task_wdt.h>
-TaskHandle_t motorTaskHandle;
 
-//    ONLY WORKS WITH 3.1.1 ESP32
 int DZ = 20;  // dead
 int MAXRPM = 200;
 float target_velocity = 0.5;
@@ -162,3 +160,4 @@ void loop() {
     // Serial.println(DI1O);
   }
 }
+
