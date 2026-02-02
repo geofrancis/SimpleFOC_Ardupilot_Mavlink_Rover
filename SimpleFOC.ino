@@ -3,10 +3,12 @@
 #include "mavlink/common/mavlink_msg_servo_output_raw.h"
 #include <SimpleFOC.h>
 #include <esp_task_wdt.h>
+TaskHandle_t motorTaskHandle;
+
 
 int DZ = 20;  // dead
 int MAXRPM = 200;
-float target_velocity = 0.5;
+float target_velocity = 1;
 
 int ESC = 140;  //board number
 //int ESC = 141;  //board number
@@ -89,8 +91,7 @@ void core0Task(void* pvParameters) {
     motor.loopFOC();
     motor1.loopFOC();
     //FOC_Speed();
-  //  motor.move(target_velocity);
-  //  motor1.move(target_velocity);
+    
   }
 }
 
@@ -136,8 +137,8 @@ void loop() {
   //motor.monitor();
   //motor1.monitor();
   MavLink_RC();
-  //motor.move(target_velocity);
-  // motor1.move(target_velocity);
+  motor.move(target_velocity);
+  motor1.move(target_velocity);
 
 
 
@@ -160,4 +161,3 @@ void loop() {
     // Serial.println(DI1O);
   }
 }
-
