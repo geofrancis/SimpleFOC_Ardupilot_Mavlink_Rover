@@ -4,8 +4,22 @@ void FOC_SETUPL() {
   motor.linkSensor(&sensor);
   driver.voltage_power_supply = 24;
   motor.voltage_sensor_align = 1;
+  motor.velocity_index_search = 3;
+
   motor.foc_modulation = FOCModulationType::SpaceVectorPWM;
   motor.controller = MotionControlType::torque;
+
+  //motor.controller = MotionControlType::velocity;
+
+  motor.PID_velocity.P = 0.06;
+  motor.PID_velocity.I = 0.3;
+  motor.PID_velocity.D = 0;
+  motor.P_angle.P = 20;
+  motor.voltage_limit = 1.5;
+  motor.PID_velocity.output_ramp = 100;
+  motor.LPF_velocity.Tf = 0.01f;
+  motor.velocity_limit = 30;
+
   motor.useMonitoring(Serial);
   motor.init();
   motor.initFOC();
@@ -19,8 +33,20 @@ void FOC_SETUPR() {
   motor1.linkSensor(&sensor1);
   driver1.voltage_power_supply = 24;
   motor1.voltage_sensor_align = 1;
-  motor1.foc_modulation = FOCModulationType::SpaceVectorPWM;
-  motor1.controller = MotionControlType::torque;
+  motor.velocity_index_search = 3;
+  //motor1.foc_modulation = FOCModulationType::SpaceVectorPWM;
+  //motor1.controller = MotionControlType::torque;
+  
+  motor1.controller = MotionControlType::velocity;
+  motor1.PID_velocity.P = 0.03;
+  motor1.PID_velocity.I = 0.3;
+  motor1.PID_velocity.D = 0;
+  motor1.P_angle.P = 20;
+  motor1.voltage_limit = 1.5;
+  motor1.PID_velocity.output_ramp = 100;
+  motor1.LPF_velocity.Tf = 0.01f;
+  motor1.velocity_limit = 30;
+
   motor1.useMonitoring(Serial);
   motor1.init();
   motor1.initFOC();
