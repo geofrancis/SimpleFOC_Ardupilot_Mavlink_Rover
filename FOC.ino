@@ -27,6 +27,7 @@ void FOC_SETUPL() {
 
 
 
+
 void FOC_SETUPR() {
   sensor1.init();
   sensor1.enableInterrupts(doA1, doB1, doC1);
@@ -36,7 +37,7 @@ void FOC_SETUPR() {
   motor.velocity_index_search = 3;
   //motor1.foc_modulation = FOCModulationType::SpaceVectorPWM;
   //motor1.controller = MotionControlType::torque;
-  
+
   motor1.controller = MotionControlType::velocity;
   motor1.PID_velocity.P = 0.03;
   motor1.PID_velocity.I = 0.3;
@@ -78,20 +79,40 @@ void FOC_Speed() {
 
 
 
-
-
-
 void FOC_telemetry() {
 
   targetL = motor.target;
   velocityL = motor.shaft_velocity;
   voltageqL = motor.voltage.q;
   currentqL = motor.current.q;
+  PhaseCurrent_s currentsL = current_senseL.getPhaseCurrents();
+  lca = (currentsL.a * 1000);
+  lcb = (currentsL.b * 1000);
+  lcc = (currentsL.c * 1000);
+  lc = current_senseL.getDCCurrent();
+
+
 
   targetR = motor1.target;
   velocityR = motor1.shaft_velocity;
   voltageqR = motor1.voltage.q;
   currentqR = motor1.current.q;
+  PhaseCurrent_s currentsR = current_senseR.getPhaseCurrents();
+  rca = (currentsR.a * 1000);
+  rcb = (currentsR.b * 1000);
+  rcc = (currentsR.c * 1000);
+  rc = current_senseR.getDCCurrent();
+
+}
+
+
+
+
+
+
+
+
+void FOC_telemetry_Print() {
 
   Serial.println("");
   Serial.print("targetL ");
@@ -104,4 +125,43 @@ void FOC_telemetry() {
   Serial.println(currentqL);
   Serial.print("target_velocity ");
   Serial.println(target_velocity);
+
+
+
+  Serial.print(lca);  // milli Amps
+  Serial.print("\t");
+  Serial.print(lcb);  // milli Amps
+  Serial.print("\t");
+  Serial.print(lcc);  // milli Amps
+  Serial.print("\t");
+  Serial.println(lc);  // milli Amps
+  Serial.println();
+
+
+
+  Serial.println("");
+  Serial.print("target ");
+  Serial.println(targetR);
+  Serial.print("velocityR ");
+  Serial.println(velocityR);
+  Serial.print("voltageq ");
+  Serial.println(voltageqR);
+  Serial.print("currentqR ");
+  Serial.println(currentqR);
+
+
+
+
+  Serial.print(rca);  // milli Amps
+  Serial.print("\t");
+  Serial.print(rcb);  // milli Amps
+  Serial.print("\t");
+  Serial.print(rcc);  // milli Amps
+  Serial.print("\t");
+  Serial.println(rc);  // milli Amps
+
+
+
+
+
 }
