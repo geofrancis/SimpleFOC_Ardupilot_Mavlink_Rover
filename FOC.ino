@@ -1,190 +1,225 @@
+void FOC_SETUPL() {
 
-#include "mavlink/common/mavlink.h"
-#include "mavlink/common/mavlink_msg_servo_output_raw.h"
-#include <SimpleFOC.h>
-#include <esp_task_wdt.h>
-TaskHandle_t motorTaskHandle;
+  sensorL.init();
 
+  driverL.voltage_power_supply = 24;
 
-int DZ = 20;  // dead
-int MAXRPM = 200;
-float target_velocity = 1;
+  sensorL.enableInterrupts(doAL, doBL, doCL);
+  motorL.linkSensor(&sensorL);
 
-int ESC = 140;  //board number
-//int ESC = 141;  //board number
-//int ESC = 142;  //board number
+  motorL.voltage_sensor_align = 1;
+  motorL.velocity_index_search = 3;
+
+  motorL.controller = MotionControlType::velocity;
 
 
-float Vlimit = 1.5;
+  //motorL.controller = MotionControlType::torque;
+  //motorL.torque_controller = TorqueControlType::foc_current;
+  //motorL.foc_modulation = FOCModulationType::SpaceVectorPWM;
+
+  //motorL.controller = MotionControlType::velocity_openloop;
 
 
+  motorL.PID_velocity.P = 0.06;
+  motorL.PID_velocity.I = 0.3;
+  motorL.PID_velocity.D = 0;
+  motorL.P_angle.P = 20;
+  motorL.voltage_limit = 1.5;
+  motorL.PID_velocity.output_ramp = 100;
+  motorL.LPF_velocity.Tf = 0.01f;
+  motorL.velocity_limit = 30;
 
 
+  motorL.current_limit = 2;  //根据情况修改电压电流限制，也可注释取消此处代码
 
-HallSensor sensor = HallSensor(18, 15, 19, 15);
 
-void doA() {
-  sensor.handleA();
+  current_senseL.init();
+  current_senseL.gain_b *= -1;
+  current_senseL.gain_a *= -1;
+  //  current_senseL.skip_align = true;
+  motorL.linkCurrentSense(&current_senseL);
+
+  motorL.PID_current_q.P = 2;
+  motorL.PID_current_q.I = 800;
+  motorL.PID_current_d.P = 2;
+  motorL.PID_current_d.I = 800;
+  motorL.LPF_current_q.Tf = 0.002;  // 1ms default
+  motorL.LPF_current_d.Tf = 0.002;  // 1ms default
+
+  motorL.PID_velocity.P = 0.1;
+  motorL.PID_velocity.I = 1;
+  motorL.PID_velocity.D = 0;
+
+  motorL.velocity_limit = 40;
+  motorL.useMonitoring(Serial);
+  motorL.init();
+  motorL.initFOC();
 }
-void doB() {
-  sensor.handleB();
+
+
+
+
+
+
+
+
+
+
+void FOC_SETUPR() {
+  sensorR.init();
+  sensorR.enableInterrupts(doAR, doBR, doCR);
+  motorR.linkSensor(&sensorR);
+  driverR.voltage_power_supply = 24;
+  motorR.voltage_sensor_align = 1;
+  motorL.velocity_index_search = 3;
+
+
+  motorR.controller = MotionControlType::velocity;
+
+  //motorR.controller = MotionControlType::torque;
+  //motorR.foc_modulation = FOCModulationType::SpaceVectorPWM;
+  //motorR.torque_controller = TorqueControlType::foc_current;
+  //motorR.controller = MotionControlType::velocity_openloop;
+
+  motorR.PID_velocity.P = 0.03;
+  motorR.PID_velocity.I = 0.3;
+  motorR.PID_velocity.D = 0;
+  motorR.P_angle.P = 20;
+  motorR.voltage_limit = 1.5;
+  motorR.PID_velocity.output_ramp = 100;
+  motorR.LPF_velocity.Tf = 0.01f;
+  motorR.velocity_limit = 30;
+  motorR.current_limit = 2;
+
+  current_senseR.init();
+  current_senseR.gain_b *= -1;
+  current_senseR.gain_a *= -1;
+  //  current_senseR.skip_align = true;
+  motorR.linkCurrentSense(&current_senseR);
+  motorR.torque_controller = TorqueControlType::foc_current;
+  motorR.controller = MotionControlType::torque;
+
+  motorR.PID_current_q.P = 2;
+  motorR.PID_current_q.I = 800;
+  motorR.PID_current_d.P = 2;
+  motorR.PID_current_d.I = 800;
+  motorR.LPF_current_q.Tf = 0.002;  // 1ms default
+  motorR.LPF_current_d.Tf = 0.002;  // 1ms default
+
+  motorR.PID_velocity.P = 0.1;
+  motorR.PID_velocity.I = 1;
+  motorR.PID_velocity.D = 0;
+
+  motorR.velocity_limit = 40;
+
+  motorR.useMonitoring(Serial);
+  motorR.init();
+  motorR.initFOC();
 }
-void doC() {
-  sensor.handleC();
-}
-
-HallSensor sensor1 = HallSensor(5, 23, 13, 15);
-void doA1() {
-  sensor1.handleA();
-}
-void doB1() {
-  sensor1.handleB();
-}
-void doC1() {
-  sensor1.handleC();
-}
-
-
-BLDCMotor motor = BLDCMotor(15);
-BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 15);
-
-BLDCMotor motor1 = BLDCMotor(15);
-BLDCDriver3PWM driver1 = BLDCDriver3PWM(26, 27, 14, 15);
 
 
 
-InlineCurrentSense current_senseL = InlineCurrentSense(0.01f, 50.0f, 39, 36);
-InlineCurrentSense current_senseR = InlineCurrentSense(0.01f, 50.0f, 35, 34);
+void FOC_Speed() {
 
+  if (leftoutputraw > (1500 + DZ)) { leftoutput = map(leftoutputraw, (1500 + DZ), 2000, 0, MAXRPM); }
+  if (leftoutputraw < (1500 + DZ) && leftoutputraw > (1500 - DZ)) { leftoutput = 0; }
+  if (leftoutputraw < (1500 - DZ)) { leftoutput = map(leftoutputraw, (1500 - DZ), 1000, 0, -MAXRPM); }
 
+  if (rightoutputraw > (1500 + DZ)) { rightoutput = map(rightoutputraw, (1500 + DZ), 2000, 0, MAXRPM); }
+  if (rightoutputraw < (1500 + DZ) && rightoutputraw > (1500 - DZ)) { rightoutput = 0; }
+  if (rightoutputraw < (1500 - DZ)) { rightoutput = map(rightoutputraw, (1500 - DZ), 1000, 0, -MAXRPM); }
 
+  if (FCOK == 1) {
+    motorL.move(rightoutput);
+    motorR.move(leftoutput);
+  }
 
-int leftoutputraw = 1500;
-int rightoutputraw = 1500;
-
-unsigned long previousMillis = 0;
-const long telem = 2000;
-
-int leftoutput = 0;
-int rightoutput = 0;
-
-int DI1O = 0;
-int FCHB = 0;
-int FCOK = 0;
-
-int BASEMODE = 0;
-int armed;
-int active = 0;
-
-float targetL = 0;
-float velocityL = 0;
-float voltageqL = 0;
-float currentqL = 0;
-
-float targetR = 0;
-float velocityR = 0;
-float voltageqR = 0;
-float currentqR = 0;
-
-float lca;
-float lcb;
-float lcc;
-float lc;
-
-float rca;
-float rcb;
-float rcc;
-float rc;
-
-
-
-
-uint8_t system_id = 1;
-uint8_t component_id = 158;
-uint8_t severity = 1;
-uint16_t id = 0;
-uint8_t chunk_seq = 0;
-
-
-
-void core0Task(void* pvParameters) {
-  FOC_SETUPL();
-  FOC_SETUPR();
-  for (;;) {
-    motor.loopFOC();
-    motor1.loopFOC();
+  if (FCOK == 0) {
+    motorL.move(0);
+    motorR.move(0);
   }
 }
 
 
 
 
+void FOC_telemetry() {
 
-void setup() {
-  Serial.begin(115200);  //Main serial port for console output
-  Serial1.begin(500000, SERIAL_8N1, 17, 16);
-  Serial2.begin(500000, SERIAL_8N1, 2, 4);  //GPS+AIS
-
-  esp_task_wdt_config_t twdt_config = {
-    .timeout_ms = 5000,
-    .idle_core_mask = (1 << 1),  // Bitmask: Bit 1 is Core 1. We leave Bit 0 (Core 0) unset.
-    .trigger_panic = true,
-  };
-  esp_task_wdt_reconfigure(&twdt_config);
-
-  driver.init();
-  driver1.init();
-  motor.linkDriver(&driver);
-  motor1.linkDriver(&driver1);
+  targetL = motorL.target;
+  velocityL = motorL.shaft_velocity;
+  voltageqL = motorL.voltage.q;
+  currentqL = motorL.current.q;
+  PhaseCurrent_s currentsL = current_senseL.getPhaseCurrents();
+  lca = (currentsL.a * 1000);
+  lcb = (currentsL.b * 1000);
+  lcc = (currentsL.c * 1000);
+  lc = current_senseL.getDCCurrent();
 
 
 
-  xTaskCreatePinnedToCore(
-    core0Task,         // Function to implement the task
-    "MotorTask",       // Name of the task
-    10000,             // Stack size in words (10k is usually plenty)
-    NULL,              // Task input parameter
-    5,                 // Priority of the task (1 is higher than 0)
-    &motorTaskHandle,  // Task handle
-    0                  // Core where the task should run (Core 0)
-  );
-
-
-
-  STARTUPMSG();
+  targetR = motorR.target;
+  velocityR = motorR.shaft_velocity;
+  voltageqR = motorR.voltage.q;
+  currentqR = motorR.current.q;
+  PhaseCurrent_s currentsR = current_senseR.getPhaseCurrents();
+  rca = (currentsR.a * 1000);
+  rcb = (currentsR.b * 1000);
+  rcc = (currentsR.c * 1000);
+  rc = current_senseR.getDCCurrent();
 }
 
 
-void loop() {
-  vTaskDelay(1);
-  if (Serial2.available()) {
-    Serial1.write(Serial2.read());
-  }
-  //motor.monitor();
-  //motor1.monitor();
-
-  MavLink_RC();
-  //FOC_Speed();
-  motor.move(target_velocity);
-  motor1.move(target_velocity);
 
 
 
 
 
-  unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis >= telem) {
-    previousMillis = currentMillis;
-    MAVLINK_HB();
-    // MAVLINK_ESC_1();
 
-    if (DI1O == 1) { Mavlink_Telemetry(); }
-    if (DI1O == 2) { FCHBC(); }
-    if (DI1O == 3) { FOC_telemetry(); }
-    // if (DI1O == 4) { sleepcheck(); }
-    DI1O++;
-    if (DI1O > 4) { DI1O = 1; }
-    // Serial.print("                               DI1O  ");
-    // Serial.println(DI1O);
-  }
+void FOC_telemetry_Print() {
+
+  Serial.println("");
+  Serial.print("targetL ");
+  Serial.println(targetL);
+  Serial.print("velocityL ");
+  Serial.println(velocityL);
+  Serial.print("voltageqL ");
+  Serial.println(voltageqL);
+  Serial.print("currentqL ");
+  Serial.println(currentqL);
+  Serial.print("target_velocity ");
+  Serial.println(target_velocity);
+
+
+
+  Serial.print(lca);  // milli Amps
+  Serial.print("\t");
+  Serial.print(lcb);  // milli Amps
+  Serial.print("\t");
+  Serial.print(lcc);  // milli Amps
+  Serial.print("\t");
+  Serial.println(lc);  // milli Amps
+  Serial.println();
+
+
+
+  Serial.println("");
+  Serial.print("target ");
+  Serial.println(targetR);
+  Serial.print("velocityR ");
+  Serial.println(velocityR);
+  Serial.print("voltageq ");
+  Serial.println(voltageqR);
+  Serial.print("currentqR ");
+  Serial.println(currentqR);
+
+
+
+
+  Serial.print(rca);  // milli Amps
+  Serial.print("\t");
+  Serial.print(rcb);  // milli Amps
+  Serial.print("\t");
+  Serial.print(rcc);  // milli Amps
+  Serial.print("\t");
+  Serial.println(rc);  // milli Amps
 }
