@@ -17,35 +17,46 @@ int ESC = 140;  //board number
 
 float Vlimit = 1.5;
 
-HallSensor sensor = HallSensor(18, 15, 19, 15);
-
-void doA() {
-  sensor.handleA();
-}
-void doB() {
-  sensor.handleB();
-}
-void doC() {
-  sensor.handleC();
-}
-
-HallSensor sensor1 = HallSensor(5, 23, 13, 15);
-void doA1() {
-  sensor1.handleA();
-}
-void doB1() {
-  sensor1.handleB();
-}
-void doC1() {
-  sensor1.handleC();
-}
 
 
-BLDCMotor motor = BLDCMotor(15);
-BLDCDriver3PWM driver = BLDCDriver3PWM(32, 33, 25, 15);
 
-BLDCMotor motor1 = BLDCMotor(15);
-BLDCDriver3PWM driver1 = BLDCDriver3PWM(26, 27, 14, 15);
+
+HallSensor sensorL = HallSensor(18, 15, 19, 15);
+
+void doAL() {
+  sensorL.handleA();
+}
+void doBL() {
+  sensorL.handleB();
+}
+void doCL() {
+  sensorL.handleC();
+}
+
+HallSensor sensorR = HallSensor(5, 23, 13, 15);
+void doAR() {
+  sensorR.handleA();
+}
+void doBR() {
+  sensorR.handleB();
+}
+void doCR() {
+  sensorR.handleC();
+}
+
+
+BLDCMotor motorL = BLDCMotor(15);
+BLDCDriver3PWM driverL = BLDCDriver3PWM(32, 33, 25, 15);
+
+BLDCMotor motorR = BLDCMotor(15);
+BLDCDriver3PWM driverR = BLDCDriver3PWM(26, 27, 14, 15);
+
+
+
+InlineCurrentSense current_senseL = InlineCurrentSense(0.01f, 50.0f, 39, 36);
+InlineCurrentSense current_senseR = InlineCurrentSense(0.01f, 50.0f, 35, 34);
+
+
 
 
 int leftoutputraw = 1500;
@@ -75,6 +86,18 @@ float velocityR = 0;
 float voltageqR = 0;
 float currentqR = 0;
 
+float lca;
+float lcb;
+float lcc;
+float lc;
+
+float rca;
+float rcb;
+float rcc;
+float rc;
+
+
+
 
 uint8_t system_id = 1;
 uint8_t component_id = 158;
@@ -88,10 +111,8 @@ void core0Task(void* pvParameters) {
   FOC_SETUPL();
   FOC_SETUPR();
   for (;;) {
-    motor.loopFOC();
-    motor1.loopFOC();
-    //FOC_Speed();
-    
+    motorL.loopFOC();
+    motorR.loopFOC();
   }
 }
 
@@ -102,7 +123,7 @@ void core0Task(void* pvParameters) {
 void setup() {
   Serial.begin(115200);  //Main serial port for console output
   Serial1.begin(500000, SERIAL_8N1, 17, 16);
-  //Serial2.begin(38400, SERIAL_8N1, 2, 4);  //GPS+AIS
+  Serial2.begin(500000, SERIAL_8N1, 2, 4);  //GPS+AIS
 
   esp_task_wdt_config_t twdt_config = {
     .timeout_ms = 5000,
@@ -111,10 +132,12 @@ void setup() {
   };
   esp_task_wdt_reconfigure(&twdt_config);
 
-  driver.init();
-  driver1.init();
-  motor.linkDriver(&driver);
-  motor1.linkDriver(&driver1);
+  driverL.init();
+  driverR.init();
+  motorL.linkDriver(&driverL);
+  motorR.linkDriver(&driverR);
+
+
 
   xTaskCreatePinnedToCore(
     core0Task,         // Function to implement the task
@@ -134,12 +157,16 @@ void setup() {
 
 void loop() {
   vTaskDelay(1);
-  //motor.monitor();
-  //motor1.monitor();
-  MavLink_RC();
-  motor.move(target_velocity);
-  motor1.move(target_velocity);
+  if (Serial2.available()) {
+    Serial1.write(Serial2.read());
+  }
+  //motorL.monitor();
+  //motorL.monitor();
 
+  MavLink_RC();
+  //FOC_Speed();
+  motorL.move(target_velocity);
+  motorR.move(target_velocity);
 
 
 
